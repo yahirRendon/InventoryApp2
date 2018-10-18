@@ -138,55 +138,38 @@ public class EditorActivity extends AppCompatActivity implements
         // Set on click listener for decrement button
         // Decrement the quantity of products by one on each click
         // Inform user if value attempted is less than zero and
-        // catch app from crashing on new entries
         decrementQuantity.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Set current quantity to null and new quantity to zero. serves as a counter
-                String currentQuantity = null;
-                int newQuantity = 0;
-                try {
-                    currentQuantity = mQuantityEditText.getText().toString();
-                    newQuantity = Integer.parseInt(mQuantityEditText.getText().toString().trim());
+                // Quantity placeholder
+                int quantityValue;
 
-                    //Check if quantity value is not equal to zero
-                    // Begin decrement
-                    if (Integer.valueOf(currentQuantity) != 0) {
-                        mQuantityEditText.setText(String.valueOf(newQuantity - 1));
-                    }
-                    //Check if quantity value is zero
-                    // Reset quantity value to zero and inform user
-                    if (Integer.valueOf(currentQuantity) == 0 || TextUtils.isEmpty(currentQuantity)) {
-                        Toast.makeText(EditorActivity.this, R.string.toast_zero_greater, Toast.LENGTH_SHORT).show();
-                        mQuantityEditText.setText(R.string.quantity_zero_value);
-                    }
-                } catch (NumberFormatException e) {
-                    //Prevent app from crashing when empty quantity value
+                // Assign quantity value, return if == 0, else decrement and set text
+                quantityValue = Integer.valueOf(mQuantityEditText.getText().toString());
+                if (quantityValue == 0) {
+                    // Show an error message as a toast
+                    Toast.makeText(EditorActivity.this, R.string.toast_zero_greater, Toast.LENGTH_SHORT).show();
+                    // Exit this method early because there's nothing left to do
+                    return;
                 }
+                quantityValue = quantityValue - 1;
+                mQuantityEditText.setText(String.valueOf(quantityValue));
             }
 
         });
 
         // set on click listener for increment button
         // increment the quantity of products by one on each click
-        // catch app from crashing on new entries
         incrementQuantity.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String theQuantity = null;
-                int newQuantity = 0;
+                // Quantity placeholder
+                int quantityValue;
 
-                try {
-                    theQuantity = mQuantityEditText.getText().toString();
-                    newQuantity = Integer.parseInt(mQuantityEditText.getText().toString().trim());
-
-                } catch (NumberFormatException e) {
-                    //catch app from crashing when quantity is empty
-                }
-                mQuantityEditText.setText(String.valueOf(newQuantity + 1));
-                if (TextUtils.isEmpty(theQuantity)) {
-                    mQuantityEditText.setText(R.string.quantity_zero_value);
-                }
+                //Assign quantity value to quantity text, increment, and set text
+                quantityValue = Integer.valueOf(mQuantityEditText.getText().toString());
+                quantityValue = quantityValue + 1;
+                mQuantityEditText.setText(String.valueOf(quantityValue));
             }
         });
 
@@ -259,6 +242,16 @@ public class EditorActivity extends AppCompatActivity implements
         int quantity = Integer.parseInt(quantityString);
         String supplierPhoneString = mSupplierPhoneEditText.getText().toString().trim();
 
+        // Create a ContentValues object where column names are the keys,
+        // and product/supplier info are the values
+        ContentValues values = new ContentValues();
+        //Create key value pairs
+        values.put(InventoryEntry.COLUMN_PRODUCT_NAME, nameString);
+        values.put(InventoryEntry.COLUMN_PRODUCT_PRICE, price);
+        values.put(InventoryEntry.COLUMN_PRODUCT_QUANTITY, quantity);
+        values.put(InventoryEntry.COLUMN_SUPPLIER_NAME, mSupplier);
+        values.put(InventoryEntry.COLUMN_SUPPLIER_PHONE, supplierPhoneString);
+
         // Check if this is supposed to be a new product
         // and check if all the fields in the editor are blank
         if (mCurrentProductUri == null &&
@@ -269,16 +262,6 @@ public class EditorActivity extends AppCompatActivity implements
             // No need to create ContentValues and no need to do any ContentProvider operations.
             return;
         }
-
-        // Create a ContentValues object where column names are the keys,
-        // and product/supplier info are the values
-        ContentValues values = new ContentValues();
-        //Create key value pairs
-        values.put(InventoryEntry.COLUMN_PRODUCT_NAME, nameString);
-        values.put(InventoryEntry.COLUMN_PRODUCT_PRICE, price);
-        values.put(InventoryEntry.COLUMN_PRODUCT_QUANTITY, quantity);
-        values.put(InventoryEntry.COLUMN_SUPPLIER_NAME, mSupplier);
-        values.put(InventoryEntry.COLUMN_SUPPLIER_PHONE, supplierPhoneString);
 
         // Determine if this is a new or existing product by checking if mCurrentProductUri is null or not
         if (mCurrentProductUri == null) {

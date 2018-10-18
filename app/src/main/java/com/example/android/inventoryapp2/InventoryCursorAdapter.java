@@ -1,14 +1,19 @@
 package com.example.android.inventoryapp2;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CursorAdapter;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,9 +32,6 @@ public class InventoryCursorAdapter extends CursorAdapter {
 
     /** Value for converting cents to dollars */
     final private static int CENT_TO_DOLLAR = 100;
-
-    /** adjust quantity on sale click */
-    private static int quantityCounter = 1;
 
     /**
      * Constructs a new {@link InventoryCursorAdapter}.
@@ -58,7 +60,7 @@ public class InventoryCursorAdapter extends CursorAdapter {
     }
     /**
      * This method binds the inventory data (in the current row pointed to by cursor) to the given
-     * list item layout. For example, the name for the current prodocut can be set on the name TextView
+     * list item layout. For example, the name for the current product can be set on the name TextView
      * in the list item layout.
      *
      * @param view    Existing view, returned earlier by newView() method
@@ -76,23 +78,26 @@ public class InventoryCursorAdapter extends CursorAdapter {
         final TextView quantityTextView = (TextView) view.findViewById(R.id.produce_quantity);
 
         // Find the columns of inventory details that we're interested in
+        int idColumnIndex = cursor.getColumnIndex(InventoryEntry._ID);
         int nameColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_PRODUCT_NAME);
         int supplierColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_SUPPLIER_NAME);
         int supplierPhoneColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_SUPPLIER_PHONE);
         int priceColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_PRODUCT_PRICE);
         int quantityColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_PRODUCT_QUANTITY);
 
-
         // Read the product details from the Cursor for the current product
+        final int rowId = cursor.getInt(idColumnIndex);
         String productName = cursor.getString(nameColumnIndex);
         int supplierNameNum = cursor.getInt(supplierColumnIndex);
         String supplierName;
         String supplierPhone = cursor.getString(supplierPhoneColumnIndex);
-        String productQuantity = cursor.getString(quantityColumnIndex);
         // Get product price convert to dollar
         String productPrice = cursor.getString(priceColumnIndex);
         double price = Double.valueOf(productPrice) / CENT_TO_DOLLAR;
         NumberFormat nf = NumberFormat.getCurrencyInstance();
+        final int productQuantity = cursor.getInt(quantityColumnIndex);
+        quantityTextView.setText(productQuantity + context.getResources().getString(R.string.in_stock_text));
+
 
         /**
          * Convert the int value of supplier name to the actual name of the
@@ -115,21 +120,43 @@ public class InventoryCursorAdapter extends CursorAdapter {
         supplierTextView.setText(supplierName);
         supplierPhoneTextView.setText(context.getString(R.string.phone_supplier_text) + supplierPhone);
         priceTextView.setText(nf.format(new BigDecimal(price)));
-        quantityTextView.setText(productQuantity);
 
-        // Change the quantity when you click the button
-        // #Fix update the database with each sale
-        Button sale = view.findViewById(R.id.sale_button);
-        sale.setOnClickListener(new View.OnClickListener() {
+        // Change the quantity when you click the sale button
+        Button sellButton = (Button) view.findViewById(R.id.sale_button);
+        sellButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                quantityCounter = Integer.parseInt(quantityTextView.getText().toString());
-                String newValue;
-                if (quantityCounter > 0) {
-                    quantityCounter--;
-                    newValue = String.valueOf(quantityCounter);
-                    quantityTextView.setText(newValue);
+                // Get the quantity string
+                String mQuantityString = quantityTextView.getText().toString().trim();
+                // Parse by empty space (num in stock)
+                String[] quantityValue = mQuantityString.split(" ");
+                // get quantity value at index 0
+                int quantity = Integer.parseInt(quantityValue[0].trim());
 
+                // check if quantity is == 0 or > 0
+                if (quantity == 0) {
+                    //#Fix why does this toast crash the app?
+//                    Toast.makeText(context, R.string.toast_zero_greater, Toast.LENGTH_SHORT).show();
+                    Log.i("Cursor Adapter:", "quantity is == 0");
+                } else if( quantity > 0) {
+                    //Decrement product quantity by one if value > 0;
+                    quantity--;
+
+                    //Prepare value pair to update db
+                    String quantityString = Integer.toString(quantity);
+                    ContentValues values = new ContentValues();
+                    values.put(InventoryEntry.COLUMN_PRODUCT_QUANTITY, quantityString);
+                    Uri currentInventoryUri = ContentUris.withAppendedId(InventoryEntry.CONTENT_URI, rowId);
+
+                    //Update db
+                    int rowsAffected = context.getContentResolver().update(currentInventoryUri, values, null, null);
+
+                    // Based on return inform user if update was successful or not
+                    if (rowsAffected != 0) {
+                        quantityTextView.setText(quantity + " " + context.getResources().getString(R.string.in_stock_text));
+                    } else {
+                        Toast.makeText(context, R.string.editor_update_product_failed, Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });

@@ -100,6 +100,7 @@
 
     <!-- Label for sale button[CHAR LIMIT=20] -->
     <string name="sale_text">Sale</string>
+
     <!-- Toast if quantity value is less than zero [CHAR LIMIT=20] -->
     <string name="toast_zero_greater">Quantity must be zero or greater</string>
 
@@ -117,4 +118,7 @@
 
     <!-- Sample supplier phone for hard code testing[CHAR LIMIT=20] -->
     <string name="sample_supplier_phone">360-220-8090</string>
+
+    <!--In stock display text [CHAR LIMIT=20] -->
+    <string name="in_stock_text">\u0020in stock</string>
 </resources>
